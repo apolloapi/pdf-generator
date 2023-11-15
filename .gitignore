@@ -1,0 +1,4 @@
+.env
+pandasai.log
+/cache
+__pycache__
