@@ -21,8 +21,7 @@ from pandasai.responses.streamlit_response import StreamlitResponse
 from pandasai.llm import OpenAI
 from dotenv import load_dotenv
 from langchain import HuggingFaceHub
-from langchain.chat_models import ChatOpenAI
-from templates import css, bot_template, user_template, prompt_template
+from templates import prompt_template
 from pandasai.prompts import GeneratePythonCodePrompt
 from PIL import Image
 
@@ -45,13 +44,6 @@ def handle_userinput(user_question, agent):
     st.session_state.chat_history.append(response)
 
     for i, message in enumerate(st.session_state.chat_history):
-        # if i % 2 == 0 and type(message) in ['String', 'int']:
-        #     st.write(user_template.replace(
-        #         "{{MSG}}", str(message)), unsafe_allow_html=True)
-        # elif type(message) in ['String', 'int']:
-        #     st.write(bot_template.replace(
-        #         "{{MSG}}", str(message)), unsafe_allow_html=True)
-        # else:
         if i % 2 == 0:
             who = "user"
         else:
@@ -64,10 +56,23 @@ def handle_userinput(user_question, agent):
                 st.write(message)
 
 
+def generate_agent(llm):
+    return Agent(
+        st.session_state.file_list,
+        config={
+            "llm": llm,
+            "verbose": True,
+            "response_parser": StreamlitResponse,
+            "custom_prompts": {"generate_python_code": FriendlyPrompt()},
+            "custom_whitelisted_dependencies": ["random", "os"],
+        },
+        memory_size=20,
+    )
+
+
 def main():
     load_dotenv()
     st.set_page_config(page_title="PDF Generator", page_icon=":robot_face:")
-    st.write(css, unsafe_allow_html=True)
     # llm = HuggingFaceHub(repo_id='HuggingFaceH4/zephyr-7b-beta')
     # llm = ChatOpenAI(temperature=0, model='gpt-4-1106-preview')
     llm = OpenAI(model="gpt-4-1106-preview")
@@ -78,30 +83,10 @@ def main():
     if "file_list" not in st.session_state:
         st.session_state.file_list = [pd.DataFrame()]
     if "agent" not in st.session_state:
-        st.session_state.agent = Agent(
-            st.session_state.file_list,
-            config={
-                "llm": llm,
-                "verbose": True,
-                "response_parser": StreamlitResponse,
-                "custom_prompts": {"generate_python_code": FriendlyPrompt()},
-                "custom_whitelisted_dependencies": ["random", "os"],
-            },
-            memory_size=20,
-        )
+        st.session_state.agent = generate_agent(llm)
     if st.button("Clear History"):
         st.session_state.chat_history = []
-        st.session_state.agent = Agent(
-            st.session_state.file_list,
-            config={
-                "llm": llm,
-                "verbose": True,
-                "response_parser": StreamlitResponse,
-                "custom_prompts": {"generate_python_code": FriendlyPrompt()},
-                "custom_whitelisted_dependencies": ["random", "os"],
-            },
-            memory_size=20,
-        )
+        st.session_state.agent = generate_agent(llm)
 
     with st.sidebar:
         st.subheader("Data")
@@ -112,17 +97,7 @@ def main():
             with st.spinner("Loading Data..."):
                 for file in files:
                     st.session_state.file_list.append(pd.read_csv(file))
-                st.session_state.agent = Agent(
-                    st.session_state.file_list,
-                    config={
-                        "llm": llm,
-                        "verbose": True,
-                        "response_parser": StreamlitResponse,
-                        "custom_prompts": {"generate_python_code": FriendlyPrompt()},
-                        "custom_whitelisted_dependencies": ["random", "os"],
-                    },
-                    memory_size=20,
-                )
+                st.session_state.agent = generate_agent(llm)
             st.success("Data Loaded!")
         if st.button("Clear loaded data"):
             st.session_state.file_list = [pd.DataFrame()]
