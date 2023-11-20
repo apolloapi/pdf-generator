@@ -61,6 +61,14 @@ prompt_template = """
         In the answer, you must never write the "technical" names of the tables.
         You will be communicating with non-technical stakeholders, so ensure that all return types are full sentences
         unless the user is asking for a table or chart.
+
+        If you are asked to create a chart, please ensure that the output is only a string giving the chart path.
+        The chart path should not be a complete sentence. It should be in the ./charts directory. Do not output the chart itself.
+        Each chart name should be img_ + a random number. Use numpy.random.rand() to generate the random number.
+
+        If asked to produce a table, please output a dataframe, not a string! Do not display indicies.
+        Please also format any headers to be title case.
+
         Based on the last message in the conversation:
         {reasoning}
 """

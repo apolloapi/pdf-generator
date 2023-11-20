@@ -24,6 +24,7 @@ from langchain import HuggingFaceHub
 from langchain.chat_models import ChatOpenAI
 from templates import css, bot_template, user_template, prompt_template
 from pandasai.prompts import GeneratePythonCodePrompt
+from PIL import Image
 
 
 class FriendlyPrompt(GeneratePythonCodePrompt):
@@ -34,7 +35,12 @@ def handle_userinput(user_question, agent):
     if st.session_state.file_list == [pd.DataFrame()]:
         st.write("Please load a CSV file first.")
         return
-    response = agent.chat(user_question)
+    if "chart" or "graph" or "plot" or "histogram" in user_question.lower():
+        response = agent.chat(user_question, output_type="string")
+    elif "table" in user_question.lower():
+        response = agent.chat(user_question, output_type="dataframe")
+    else:
+        response = agent.chat(user_question)
     st.session_state.chat_history.append(user_question)
     st.session_state.chat_history.append(response)
 
@@ -46,7 +52,16 @@ def handle_userinput(user_question, agent):
         #     st.write(bot_template.replace(
         #         "{{MSG}}", str(message)), unsafe_allow_html=True)
         # else:
-        st.write(message)
+        if i % 2 == 0:
+            who = "user"
+        else:
+            who = "assitant"
+        with st.chat_message(who):
+            if "img_" in str(message):
+                image = Image.open(message)
+                st.image(image, use_column_width=True)
+            else:
+                st.write(message)
 
 
 def main():
@@ -70,6 +85,7 @@ def main():
                 "verbose": True,
                 "response_parser": StreamlitResponse,
                 "custom_prompts": {"generate_python_code": FriendlyPrompt()},
+                "custom_whitelisted_dependencies": ["random", "os"],
             },
             memory_size=20,
         )
@@ -82,6 +98,7 @@ def main():
                 "verbose": True,
                 "response_parser": StreamlitResponse,
                 "custom_prompts": {"generate_python_code": FriendlyPrompt()},
+                "custom_whitelisted_dependencies": ["random", "os"],
             },
             memory_size=20,
         )
@@ -102,6 +119,7 @@ def main():
                         "verbose": True,
                         "response_parser": StreamlitResponse,
                         "custom_prompts": {"generate_python_code": FriendlyPrompt()},
+                        "custom_whitelisted_dependencies": ["random", "os"],
                     },
                     memory_size=20,
                 )
@@ -109,7 +127,7 @@ def main():
         if st.button("Clear loaded data"):
             st.session_state.file_list = [pd.DataFrame()]
 
-    user_question = st.text_input("Ask a question about your csv:")
+    user_question = st.chat_input("Ask a question about your csv:")
     if user_question or st.session_state.chat_history != []:
         try:
             with st.spinner("Thinking..."):
