@@ -3,3 +3,4 @@ pandasai==1.4.6
 pandas==1.5.3
 langchain
 streamlit
+reportlab

@@ -16,14 +16,17 @@
 
 import streamlit as st
 import pandas as pd
-from pandasai import Agent
+from pandasai import Agent, SmartDataframe, clear_cache
 from pandasai.responses.streamlit_response import StreamlitResponse
 from pandasai.llm import OpenAI
+from pandasai.prompts import GeneratePythonCodePrompt
 from dotenv import load_dotenv
 from langchain import HuggingFaceHub
 from templates import prompt_template
-from pandasai.prompts import GeneratePythonCodePrompt
-from PIL import Image
+from PIL import Image as PILImage
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Image, Table, TableStyle
 
 
 class FriendlyPrompt(GeneratePythonCodePrompt):
@@ -42,7 +45,10 @@ def handle_userinput(user_question, agent):
         response = agent.chat(user_question)
     st.session_state.chat_history.append(user_question)
     st.session_state.chat_history.append(response)
+    print_chat()
 
+
+def print_chat():
     for i, message in enumerate(st.session_state.chat_history):
         if i % 2 == 0:
             who = "user"
@@ -50,7 +56,7 @@ def handle_userinput(user_question, agent):
             who = "assitant"
         with st.chat_message(who):
             if "img_" in str(message):
-                image = Image.open(message)
+                image = PILImage.open(message)
                 st.image(image, use_column_width=True)
             else:
                 st.write(message)
@@ -70,6 +76,44 @@ def generate_agent(llm):
     )
 
 
+def generate_pdf():
+    doc = SimpleDocTemplate("transparency_report.pdf", pagesize=letter)
+    styles = getSampleStyleSheet()
+    custom_style = ParagraphStyle(
+        "CustomStyle",
+        parent=styles["Normal"],
+        spaceAfter=12,
+    )
+    content = []
+    for i, message in enumerate(st.session_state.chat_history):
+        if i % 2 == 1:
+            if isinstance(message, SmartDataframe):
+                df = message
+                data = [
+                    df.columns[
+                        :,
+                    ].tolist()
+                ] + df.values.tolist()
+                t = Table(data)
+                t.setStyle(
+                    TableStyle(
+                        [
+                            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                            ("INNERGRID", (0, 0), (-1, -1), 0.25, "black"),
+                            ("BOX", (0, 0), (-1, -1), 0.25, "black"),
+                        ]
+                    )
+                )
+                content.append(t)
+
+            elif "img_" in str(message):
+                content.append(Image(message, width=400, height=400))
+
+            else:
+                content.append(Paragraph(message, custom_style))
+    doc.build(content)
+
+
 def main():
     load_dotenv()
     st.set_page_config(page_title="PDF Generator", page_icon=":robot_face:")
@@ -77,6 +121,7 @@ def main():
     # llm = ChatOpenAI(temperature=0, model='gpt-4-1106-preview')
     llm = OpenAI(model="gpt-4-1106-preview")
     st.header("PDF Generator")
+    clear_cache()
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
@@ -103,10 +148,18 @@ def main():
             st.session_state.file_list = [pd.DataFrame()]
 
     user_question = st.chat_input("Ask a question about your csv:")
-    if user_question or st.session_state.chat_history != []:
+    if user_question:
         try:
             with st.spinner("Thinking..."):
                 handle_userinput(user_question, st.session_state.agent)
+        except Exception as e:
+            st.error(e)
+    if st.button("Generate PDF"):
+        try:
+            with st.spinner("Generating PDF..."):
+                generate_pdf()
+            st.success("PDF Generated!")
+            print_chat()
         except Exception as e:
             st.error(e)
 
