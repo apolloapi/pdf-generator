@@ -21,12 +21,13 @@ from pandasai.responses.streamlit_response import StreamlitResponse
 from pandasai.llm import OpenAI
 from pandasai.prompts import GeneratePythonCodePrompt
 from dotenv import load_dotenv
-from langchain import HuggingFaceHub
+from langchain.llms import HuggingFaceHub
 from templates import prompt_template
 from PIL import Image as PILImage
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Image, Table, TableStyle
+import openai
 
 
 class FriendlyPrompt(GeneratePythonCodePrompt):
@@ -76,7 +77,8 @@ def generate_agent(llm):
     )
 
 
-def generate_pdf():
+def generate_pdf(agent):
+    client = OpenAI()
     doc = SimpleDocTemplate("transparency_report.pdf", pagesize=letter)
     styles = getSampleStyleSheet()
     custom_style = ParagraphStyle(
@@ -86,7 +88,15 @@ def generate_pdf():
     )
     content = []
     for i, message in enumerate(st.session_state.chat_history):
-        if i % 2 == 1:
+        if i % 2 == 0:
+            prompt = f"Rephrase this question into a concise heading in title case: {message}. Ensure the heading is not a question."
+            completion = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}]
+            )
+            content.append(
+                Paragraph(completion.choices[0].message.content, styles["Heading1"])
+            )
+        else:
             if isinstance(message, SmartDataframe):
                 df = message
                 data = [
@@ -117,8 +127,7 @@ def generate_pdf():
 def main():
     load_dotenv()
     st.set_page_config(page_title="PDF Generator", page_icon=":robot_face:")
-    # llm = HuggingFaceHub(repo_id='HuggingFaceH4/zephyr-7b-beta')
-    # llm = ChatOpenAI(temperature=0, model='gpt-4-1106-preview')
+    # llm = HuggingFaceHub(repo_id='gpt2-medium')
     llm = OpenAI(model="gpt-4-1106-preview")
     st.header("PDF Generator")
     clear_cache()
@@ -147,19 +156,20 @@ def main():
         if st.button("Clear loaded data"):
             st.session_state.file_list = [pd.DataFrame()]
 
+    if st.button("Generate PDF"):
+        try:
+            with st.spinner("Generating PDF..."):
+                generate_pdf(st.session_state.agent)
+            st.success("PDF Generated!")
+            print_chat()
+        except Exception as e:
+            st.error(e)
+
     user_question = st.chat_input("Ask a question about your csv:")
     if user_question:
         try:
             with st.spinner("Thinking..."):
                 handle_userinput(user_question, st.session_state.agent)
-        except Exception as e:
-            st.error(e)
-    if st.button("Generate PDF"):
-        try:
-            with st.spinner("Generating PDF..."):
-                generate_pdf()
-            st.success("PDF Generated!")
-            print_chat()
         except Exception as e:
             st.error(e)
 
