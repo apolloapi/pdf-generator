@@ -16,6 +16,7 @@
 
 
 import openai
+import os
 import streamlit as st
 import pandas as pd
 from pandasai import Agent, SmartDataframe
@@ -30,6 +31,13 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Image, Table, Table
 
 class FriendlyPrompt(GeneratePythonCodePrompt):
     template = prompt_template
+
+
+def check_openai_key():
+    """
+    Check if the OpenAI key is present in environment variables
+    """
+    return os.getenv("OPENAI_API_KEY")
 
 
 def generate_agent(llm, state):

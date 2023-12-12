@@ -19,6 +19,7 @@ import streamlit as st
 import pandas as pd
 from pandasai import clear_cache
 from pandasai.llm import OpenAI
+import os
 from dotenv import load_dotenv
 from helper_functions import *
 
@@ -28,8 +29,19 @@ def main():
     st.set_page_config(page_title="PDF Generator", page_icon=":robot_face:")
     st.header("PDF Generator")
 
-    # load OpenAI key and LLM model
+    # check for openAI key and load LLM model once it is present, block app if not present
     load_dotenv()
+    openai_key = check_openai_key()
+
+    if not openai_key:
+        # If OpenAI key is not present, show a modal to input the key
+        st.sidebar.header("Authentication Required")
+        openai_key_input = st.sidebar.text_input("Enter your OpenAI key:")
+        if openai_key_input:
+            os.environ["OPENAI_API_KEY"] = openai_key_input
+            st.rerun()  # Rerun the script to reload the app with the updated key
+        else:
+            st.stop()
     llm = OpenAI(model="gpt-4-1106-preview")
 
     # initialize session state variables upon launch
