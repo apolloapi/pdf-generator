@@ -56,7 +56,7 @@ def generate_agent(llm, state):
     )
 
 
-def generate_pdf(state):
+def generate_pdf(state, selected_history):
     """
     Generates a PDF report from the chat history.
 
@@ -65,11 +65,16 @@ def generate_pdf(state):
 
     Args:
         state (SessionState): A Streamlit SessionState object.
+        selected_history (list): The selected list of chat messages.
 
     Returns:
         None
     """
-    doc = SimpleDocTemplate("report.pdf", pagesize=letter)
+    if not selected_history:
+        st.warning("Please select at least one message.")
+        return
+
+    doc = SimpleDocTemplate("report.pdf", pagesize=letter, title="Analysis")
     styles = getSampleStyleSheet()
     custom_style = ParagraphStyle(
         "CustomStyle",
@@ -78,11 +83,14 @@ def generate_pdf(state):
     )
 
     content = []
-    prompt = f"Generate a title for this report in title case using the following information: {state.chat_history}"
+    selected_history = [message.split("\n") for message in selected_history]
+    selected_history = [item for sublist in selected_history for item in sublist]
+    prompt = f"Generate a concise title for this report in title case using the following information: {selected_history}"
     generate_heading(prompt, content, styles, size="Title")
-    for i, message in enumerate(state.chat_history):
+    for i, message in enumerate(selected_history):
         if i % 2 == 0:
-            prompt = f"Rephrase this question into a concise heading in title case: {message}. Ensure the heading is not a question."
+            prompt = f"""Rephrase this question into a concise heading in title case: {message}.
+                If needed, the context for the request is {state.chat_history}. Ensure the heading is not a question."""
             generate_heading(prompt, content, styles)
         else:
             if isinstance(message, SmartDataframe):
@@ -122,14 +130,17 @@ def generate_pdf(state):
                 content.append(t)
 
             elif "img_" in str(message):
-                content.append(Image(message, width=400, height=400))
+                content.append(
+                    Image(message, width=400, height=400, kind="proportional")
+                )
 
             else:
                 content.append(Paragraph(message, custom_style))
     doc.build(content)
+    st.success("PDF Generated!")
 
 
-def generate_heading(prompt, content, styles, size="Heading2"):
+def generate_heading(prompt, content, styles, size="Heading3"):
     """
     Generates headings for each section of the report.
 
@@ -169,9 +180,7 @@ def handle_userinput(user_question, state):
         response = state.agent.chat(user_question, output_type="dataframe")
     else:
         response = state.agent.chat(user_question)
-    state.chat_history.append(user_question)
-    state.chat_history.append(response)
-    print_chat(state.chat_history)
+    state.chat_history.append(f"{user_question} ;; {response}")
 
 
 def print_chat(chat_history):
@@ -184,14 +193,17 @@ def print_chat(chat_history):
     Returns:
         None
     """
-    for i, message in enumerate(chat_history):
-        if i % 2 == 0:
-            who = "user"
-        else:
-            who = "assitant"
-        with st.chat_message(who):
-            if "img_" in str(message):
-                image = PILImage.open(message)
+    if not chat_history:
+        return
+    for message in chat_history:
+        user_message = message.split(" ;; ")[0]
+        assistant_message = message.split(" ;; ")[1]
+        with st.chat_message("user"):
+            st.write(user_message)
+
+        with st.chat_message("assistant"):
+            if "img_" in str(assistant_message):
+                image = PILImage.open(assistant_message)
                 st.image(image, use_column_width=True)
             else:
-                st.write(message)
+                st.write(assistant_message)

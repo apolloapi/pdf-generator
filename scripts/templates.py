@@ -21,6 +21,7 @@ prompt_template = """
         The chart path should not be a complete sentence. It should be in the ./charts directory. Do not output the chart itself.
         Each chart name should be img_ + a random number. Use numpy.random.rand() to generate the random number.
         Include a short caption below the chart using plt.figtext. The caption should be a full sentence.
+        Utilize plt.subplots_adjust to ensure that the caption is not cut off and doesn't overlap with x-axis labels.
 
         If asked to produce a table, please output a dataframe, not a string! Do not display indicies.
         Please, format any headers to be title case, and don't use scientific notation for numbers.

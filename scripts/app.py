@@ -47,7 +47,10 @@ def main():
         st.session_state.agent = generate_agent(llm, st.session_state)
         clear_cache()
 
-    # sidebar contains file upload and button to clear data if no longer wanted
+    # display chat history
+    print_chat(st.session_state.chat_history)
+
+    # sidebar section 1 contains file upload and button to clear data if no longer wanted
     with st.sidebar:
         st.subheader("Data")
         if st.button("Clear Loaded Data"):
@@ -62,15 +65,26 @@ def main():
                 st.session_state.agent = generate_agent(llm, st.session_state)
             st.success("Data Loaded!")
 
-    # button to generate pdf on click
-    if st.button("Generate PDF"):
-        try:
-            with st.spinner("Generating PDF..."):
-                generate_pdf(st.session_state)
-            st.success("PDF Generated!")
-            print_chat(st.session_state.chat_history)
-        except Exception as e:
-            st.error(e)
+        # sidebar section 2 allows user to select which parts of conversation to export to PDF, and exports
+        st.subheader("PDF Output")
+        gen = st.checkbox("Prepare PDF")
+        if gen:
+            with st.form("pdf_form"):
+                display_hist = [
+                    f"{message.split(' ;; ')[0]}\n{message.split(' ;; ')[1]}"
+                    for message in st.session_state.chat_history
+                ]
+                selected_messages = st.multiselect(
+                    "Select messages:", display_hist, default=display_hist
+                )
+                download = st.form_submit_button("Download PDF")
+
+            if download:
+                try:
+                    with st.spinner("Generating PDF..."):
+                        generate_pdf(st.session_state, selected_messages)
+                except Exception as e:
+                    st.error(e)
 
     # input box for user to enter chat messages
     user_question = st.chat_input("Ask a question about your data:")
@@ -78,6 +92,8 @@ def main():
         try:
             with st.spinner("Thinking..."):
                 handle_userinput(user_question, st.session_state)
+                # Refresh the page to update the displayed chat history
+                st.rerun()
         except Exception as e:
             st.error(e)
 
