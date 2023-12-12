@@ -23,7 +23,7 @@ prompt_template = """
         Include a short caption below the chart using plt.figtext. The caption should be a full sentence.
 
         If asked to produce a table, please output a dataframe, not a string! Do not display indicies.
-        Please also format any headers to be title case.
+        Please, format any headers to be title case, and don't use scientific notation for numbers.
 
         Based on the last message in the conversation:
         {reasoning}
