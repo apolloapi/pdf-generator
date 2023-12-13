@@ -215,3 +215,26 @@ def print_chat(chat_history):
                 st.image(image, use_column_width=True)
             else:
                 st.write(assistant_message)
+
+
+def validate_openai_key(key):
+    """
+    Validates the OpenAI key.
+
+    Args:
+        key (str): The OpenAI key.
+
+    Returns:
+        bool: True if valid, False otherwise.
+    """
+    if key is None:
+        return False
+    try:
+        openai.api_key = key
+        response = openai.Completion.create(
+            engine="davinci", prompt="This is a test.", max_tokens=5
+        )
+        response.choices[0].text
+        return True
+    except:
+        return False

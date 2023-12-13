@@ -19,7 +19,6 @@ import streamlit as st
 import pandas as pd
 from pandasai import clear_cache
 from pandasai.llm import OpenAI
-import os
 from dotenv import load_dotenv
 from helper_functions import *
 
@@ -29,20 +28,32 @@ def main():
     st.set_page_config(page_title="PDF Generator", page_icon=":robot_face:")
     st.header("PDF Generator")
 
-    # check for openAI key and load LLM model once it is present, block app if not present
+    # check for openAI key is present in environment variables
     load_dotenv()
     openai_key = check_openai_key()
 
-    if not openai_key:
-        # If OpenAI key is not present, show a modal to input the key
+    # if key is not present in environment variables or session state
+    if not openai_key and "api_key" not in st.session_state:
+        # If OpenAI key is not present, show a popup to input the key
         st.sidebar.header("Authentication Required")
         openai_key_input = st.sidebar.text_input("Enter your OpenAI key:")
         if openai_key_input:
-            os.environ["OPENAI_API_KEY"] = openai_key_input
+            st.session_state["api_key"] = openai_key_input
             st.rerun()  # Rerun the script to reload the app with the updated key
         else:
             st.stop()
-    llm = OpenAI(model="gpt-4-1106-preview")
+
+    # elif the key is not present in environment variables, but it is in session state
+    elif "api_key" in st.session_state:
+        if validate_openai_key(st.session_state.api_key):
+            llm = OpenAI(model="gpt-4-1106-preview", api_token=st.session_state.api_key)
+        else:
+            st.session_state.clear()
+            st.rerun()
+
+    # else means key was present in environment variables
+    else:
+        llm = OpenAI(model="gpt-4-1106-preview")
 
     # initialize session state variables upon launch
     clear_cache()
