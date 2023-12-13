@@ -3,16 +3,16 @@ This app enables a non-technical user to upload one or more CSV files, ask quest
 
 ### Usage Guide
 1. If not set as an environment variable, please enter your OpenAI API key when prompted. Only valid API keys will be accepted.
-![Alt text](images\initial_setup.png)
+![Alt text](images/initial_setup.png)
 
 2. Upload one or more CSV files. Once all have been uploaded, click "Load Data" to load the data into your current session. If you no longer want to use a file, click "Clear Loaded Data" to remove it from your session.
-![Alt text](images\data_upload.png)
+![Alt text](images/data_upload.png)
 
 3. Ask all the questions you want about your dataset! If you want to clear the displayed history, click "Clear History". Note: This will also clear the history of the chatbot, so it will not remember the context of previous questions.
-![Alt text](images\chatting.png)
+![Alt text](images/chatting.png)
 
 4. Once you are satisfied with your questions, click "Show" in the PDF Output section to select the parts of the converstation that you would like to add to your PDF report. Hover over the options to see a preview of the question and provided answer. Once you have selected all the parts you want, click "Generate PDF", and finally "Download PDF" to download your report.
-![Alt text](images\export.png)
+![Alt text](images/export.png)
 
 ### Original Use Case
 As a user I should be able to upload a data set, ask questions about my data and export my data into a pdf. The goal is to provide users the ability to generate transparency reports and chat with AI on my data to build the following, [transparency report example](https://transparency.fb.com/sr/india-monthly-report-jul31-2023/#:~:text=Between%201st%20and%2030th%20June,received%20under%20the%20following%20categories.&text=Of%20these%20incoming%20reports%2C%20we,their%20issues%20in%203%2C507%20cases)
