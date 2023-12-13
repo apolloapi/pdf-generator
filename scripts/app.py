@@ -77,9 +77,9 @@ def main():
                 st.session_state.agent = generate_agent(llm, st.session_state)
             st.success("Data Loaded!")
 
-        # sidebar section 2 allows user to select which parts of conversation to export to PDF, and exports
+        # sidebar section 2 allows user to select which parts of conversation to export to PDF
         st.subheader("PDF Output")
-        gen = st.checkbox("Prepare PDF")
+        gen = st.checkbox("Show")
         if gen:
             with st.form("pdf_form"):
                 display_hist = [
@@ -89,12 +89,24 @@ def main():
                 selected_messages = st.multiselect(
                     "Select messages:", display_hist, default=display_hist
                 )
-                download = st.form_submit_button("Download PDF")
+                download = st.form_submit_button("Generate PDF")
 
+            # generate PDF if user has selected messages and clicked button
             if download:
                 try:
                     with st.spinner("Generating PDF..."):
                         generate_pdf(st.session_state, selected_messages)
+                        with open("report.pdf", "rb") as f:
+                            pdf_content = f.read()
+
+                        st.download_button(
+                            label="Download PDF",
+                            data=pdf_content,
+                            file_name="report.pdf",
+                            key="download_pdf",
+                            help="Click to download the generated PDF",
+                        )
+
                 except Exception as e:
                     st.error(e)
 
