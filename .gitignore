@@ -1,0 +1,6 @@
+.env
+pandasai.log
+/cache
+__pycache__
+charts
+*.pdf
